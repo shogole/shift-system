@@ -19,7 +19,7 @@ export default async function StaffLayout({
   if (!staff) notFound()
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen max-w-sm mx-auto">
       <header className="bg-brand-dark text-white px-4 py-3">
         <h2 className="text-brand-gold font-bold">{staff.name} さん</h2>
         <p className="text-gray-400 text-xs mt-0.5">キッチンラボ シフト管理</p>
