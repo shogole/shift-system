@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { Staff, ShiftRequest } from '@/lib/types'
+import { Staff, ShiftRequest, OfferSlot } from '@/lib/types'
 import ShiftGrid from '@/components/ShiftGrid'
 
 type Period = 'back_half' | 'next_front'
@@ -29,9 +29,10 @@ export default async function AdminDashboard({
   const startDate = `${monthStr}-${String(startDay).padStart(2, '0')}`
   const endDate = `${monthStr}-${String(endDay).padStart(2, '0')}`
 
-  const [{ data: staffs }, { data: shifts }] = await Promise.all([
+  const [{ data: staffs }, { data: shifts }, { data: offerSlots }] = await Promise.all([
     supabase.from('staffs').select('*').order('name'),
     supabase.from('shift_requests').select('*').gte('date', startDate).lte('date', endDate),
+    supabase.from('offer_slots').select('*').gte('date', startDate).lte('date', endDate),
   ])
 
   const dates: string[] = []
@@ -87,6 +88,7 @@ export default async function AdminDashboard({
         dates={dates}
         shifts={(shifts ?? []) as ShiftRequest[]}
         activeMonth={activeMonth}
+        offerSlots={(offerSlots ?? []) as OfferSlot[]}
       />
 
       <div className="flex gap-4 mt-3 text-xs text-gray-500 flex-wrap">

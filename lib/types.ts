@@ -63,6 +63,14 @@ export interface DailyReport {
   created_at: string
 }
 
+export interface OfferSlot {
+  id: string
+  date: string
+  start_time: string
+  end_time: string
+  created_at: string
+}
+
 export interface Settings {
   budget: { weekday: number; weekend: number }
   deadline: { first_half: number; second_half: number }

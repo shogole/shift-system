@@ -3,9 +3,9 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Staff, ShiftRequest } from '@/lib/types'
+import { Staff, ShiftRequest, OfferSlot } from '@/lib/types'
 import { calculateHours } from '@/lib/calculations'
-import { confirmShift, rejectShift, updateShiftTime } from '@/app/admin/actions'
+import { confirmShift, rejectShift, updateShiftTime, saveOfferSlot, deleteOfferSlot } from '@/app/admin/actions'
 
 const DOW_LABELS = ['日', '月', '火', '水', '木', '金', '土']
 
@@ -52,14 +52,18 @@ interface Props {
   dates: string[]
   shifts: ShiftRequest[]
   activeMonth: number
+  offerSlots: OfferSlot[]
 }
 
-export default function ShiftGrid({ staffs, dates, shifts, activeMonth }: Props) {
+export default function ShiftGrid({ staffs, dates, shifts, activeMonth, offerSlots }: Props) {
   const router = useRouter()
   const [, startTransition] = useTransition()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editStart, setEditStart] = useState('')
   const [editEnd, setEditEnd] = useState('')
+  const [editingSlotDate, setEditingSlotDate] = useState<string | null>(null)
+  const [slotStart, setSlotStart] = useState('10:00')
+  const [slotEnd, setSlotEnd] = useState('15:00')
 
   // staffId -> date -> ShiftRequest
   const shiftMap = new Map<string, Map<string, ShiftRequest>>()
@@ -78,6 +82,27 @@ export default function ShiftGrid({ staffs, dates, shifts, activeMonth }: Props)
   function handleReject(shiftId: string) {
     startTransition(async () => {
       await rejectShift(shiftId)
+      router.refresh()
+    })
+  }
+
+  function startEditSlot(date: string, slot: OfferSlot | null) {
+    setEditingSlotDate(date)
+    setSlotStart(slot ? formatTimeInput(slot.start_time) : '10:00')
+    setSlotEnd(slot ? formatTimeInput(slot.end_time) : '15:00')
+  }
+
+  function handleSaveSlot(date: string) {
+    startTransition(async () => {
+      await saveOfferSlot(date, slotStart, slotEnd)
+      setEditingSlotDate(null)
+      router.refresh()
+    })
+  }
+
+  function handleDeleteSlot(id: string) {
+    startTransition(async () => {
+      await deleteOfferSlot(id)
       router.refresh()
     })
   }
@@ -249,6 +274,61 @@ export default function ShiftGrid({ staffs, dates, shifts, activeMonth }: Props)
               </tr>
             )
           })}
+            {/* ヘルプミー行 */}
+            <tr className="bg-red-50">
+              <td className="border-r border-b border-gray-200 px-2 py-1.5 font-bold text-red-600 sticky left-0 bg-red-50 z-10 text-xs">
+                🆘 ヘルプミー
+              </td>
+              {dates.map(date => {
+                const slot = offerSlots.find(s => s.date === date)
+                const isEditing = editingSlotDate === date
+
+                if (isEditing) {
+                  return (
+                    <td key={date} className="border-r border-b border-gray-200 bg-red-50 p-1">
+                      <input type="time" value={slotStart} onChange={e => setSlotStart(e.target.value)}
+                        className="w-full border rounded px-1 py-0.5 text-[10px] mb-0.5" />
+                      <input type="time" value={slotEnd} onChange={e => setSlotEnd(e.target.value)}
+                        className="w-full border rounded px-1 py-0.5 text-[10px] mb-1" />
+                      <div className="flex gap-0.5">
+                        <button onClick={() => handleSaveSlot(date)}
+                          className="flex-1 bg-red-500 text-white rounded px-1 py-0.5 text-[10px] font-bold">
+                          保存
+                        </button>
+                        <button onClick={() => setEditingSlotDate(null)}
+                          className="flex-1 bg-gray-100 text-gray-500 rounded px-1 py-0.5 text-[10px]">
+                          取消
+                        </button>
+                      </div>
+                    </td>
+                  )
+                }
+
+                if (slot) {
+                  return (
+                    <td key={date} className="border-r border-b border-gray-200 bg-red-100 px-1 py-1 text-center">
+                      <button onClick={() => startEditSlot(date, slot)}
+                        className="font-bold text-red-700 text-[10px] hover:underline block w-full">
+                        {formatShortTime(slot.start_time)}-{formatShortTime(slot.end_time)}
+                      </button>
+                      <button onClick={() => handleDeleteSlot(slot.id)}
+                        className="text-red-300 hover:text-red-500 text-[10px]">
+                        削除
+                      </button>
+                    </td>
+                  )
+                }
+
+                return (
+                  <td key={date} className="border-r border-b border-gray-200 bg-red-50 text-center">
+                    <button onClick={() => startEditSlot(date, null)}
+                      className="text-red-300 hover:text-red-500 text-lg leading-none">
+                      +
+                    </button>
+                  </td>
+                )
+              })}
+            </tr>
         </tbody>
       </table>
     </div>

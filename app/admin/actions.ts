@@ -149,6 +149,27 @@ export async function upsertDailyReport(formData: FormData) {
   redirect(`/admin/daily/${date}`)
 }
 
+// ===== ヘルプミー枠 =====
+
+export async function saveOfferSlot(date: string, startTime: string, endTime: string) {
+  const supabase = createClient()
+  await supabase.from('offer_slots').upsert(
+    {
+      date,
+      start_time: startTime.length === 5 ? startTime + ':00' : startTime,
+      end_time: endTime.length === 5 ? endTime + ':00' : endTime,
+    },
+    { onConflict: 'date' }
+  )
+  revalidatePath('/admin', 'layout')
+}
+
+export async function deleteOfferSlot(id: string) {
+  const supabase = createClient()
+  await supabase.from('offer_slots').delete().eq('id', id)
+  revalidatePath('/admin', 'layout')
+}
+
 // ===== ヘルプ通知 =====
 
 export async function sendOfferNotification(formData: FormData) {
