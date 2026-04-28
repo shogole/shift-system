@@ -6,7 +6,9 @@ import { ShiftTemplate, ShiftRequest } from '@/lib/types'
 import MonthCalendar from '@/components/MonthCalendar'
 import TemplateSelectPopup from '@/components/TemplateSelectPopup'
 
-type Period = 'first' | 'second'
+// back_half = 今月後半（16〜末日）締切: 当月5日
+// next_front = 来月前半（1〜15日）締切: 当月20日
+type Period = 'back_half' | 'next_front'
 
 export default function CalendarPage({
   params,
@@ -15,17 +17,27 @@ export default function CalendarPage({
 }) {
   const supabase = createClient()
   const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth() + 1
+  const thisYear = now.getFullYear()
+  const thisMonth = now.getMonth() + 1
+  const nextMonth = thisMonth === 12 ? 1 : thisMonth + 1
+  const nextYear = thisMonth === 12 ? thisYear + 1 : thisYear
 
-  const [period, setPeriod] = useState<Period>('first')
+  // デフォルト: 5日以前は今月後半、6日以降は来月前半
+  const defaultPeriod: Period = now.getDate() <= 5 ? 'back_half' : 'next_front'
+  const [period, setPeriod] = useState<Period>(defaultPeriod)
   const [templates, setTemplates] = useState<ShiftTemplate[]>([])
   const [requests, setRequests] = useState<Map<string, ShiftRequest>>(new Map())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
-  const deadlineDay = period === 'first' ? 5 : 20
+  // アクティブな年月・カレンダー表示期間
+  const activeYear = period === 'back_half' ? thisYear : nextYear
+  const activeMonth = period === 'back_half' ? thisMonth : nextMonth
+  const calPeriod = period === 'back_half' ? ('second' as const) : ('first' as const)
+
+  // 締切は両方とも当月
+  const deadlineDay = period === 'back_half' ? 5 : 20
   const daysUntilDeadline = deadlineDay - now.getDate()
 
   useEffect(() => {
@@ -34,8 +46,10 @@ export default function CalendarPage({
       .select('*')
       .eq('staff_id', params.staffId)
       .then(({ data }) => setTemplates(data ?? []))
+  }, [params.staffId])
 
-    const monthStr = `${year}-${String(month).padStart(2, '0')}`
+  useEffect(() => {
+    const monthStr = `${activeYear}-${String(activeMonth).padStart(2, '0')}`
     supabase
       .from('shift_requests')
       .select('*')
@@ -47,7 +61,7 @@ export default function CalendarPage({
         data?.forEach(r => map.set(r.date, r))
         setRequests(map)
       })
-  }, [params.staffId])
+  }, [params.staffId, period, activeYear, activeMonth])
 
   const calendarDays = new Map(
     Array.from(requests.entries()).map(([date, req]) => [
@@ -112,34 +126,44 @@ export default function CalendarPage({
 
   const pendingCount = Array.from(requests.values()).filter(r => r.status === 'pending').length
 
+  const tabLabel = (p: Period) =>
+    p === 'back_half'
+      ? `今月後半（${thisMonth}月16〜末日）`
+      : `来月前半（${nextMonth}月1〜15日）`
+
   return (
     <div className="p-4">
       {daysUntilDeadline >= 0 && daysUntilDeadline <= 10 && (
         <div className="bg-amber-50 border border-amber-300 rounded-xl px-3 py-2 mb-3 text-sm text-amber-800">
-          ⏰ {period === 'first' ? '前半' : '後半'}締切まであと <strong>{daysUntilDeadline}日</strong>
-          （{month}月{deadlineDay}日）
+          ⏰ {period === 'back_half' ? '今月後半' : '来月前半'}締切まであと <strong>{daysUntilDeadline}日</strong>
+          （{thisMonth}月{deadlineDay}日）
+        </div>
+      )}
+      {daysUntilDeadline < 0 && (
+        <div className="bg-gray-100 border border-gray-200 rounded-xl px-3 py-2 mb-3 text-sm text-gray-500">
+          この期間の締切（{thisMonth}月{deadlineDay}日）は過ぎています
         </div>
       )}
       <div className="flex bg-gray-100 rounded-lg p-0.5 mb-3">
-        {(['first', 'second'] as Period[]).map(p => (
+        {(['back_half', 'next_front'] as Period[]).map(p => (
           <button
             key={p}
             onClick={() => setPeriod(p)}
-            className={`flex-1 py-1.5 rounded-md text-sm font-bold transition-colors ${
+            className={`flex-1 py-1.5 rounded-md text-xs font-bold transition-colors ${
               period === p ? 'bg-white text-brand-dark shadow-sm' : 'text-gray-400'
             }`}
           >
-            {p === 'first' ? '前半（1〜15日）' : '後半（16〜末日）'}
+            {tabLabel(p)}
           </button>
         ))}
       </div>
       <div className="flex items-center justify-between mb-2">
-        <h3 className="font-bold">{year}年 {month}月</h3>
+        <h3 className="font-bold">{activeYear}年 {activeMonth}月</h3>
       </div>
       <MonthCalendar
-        year={year}
-        month={month}
-        period={period}
+        year={activeYear}
+        month={activeMonth}
+        period={calPeriod}
         days={calendarDays}
         onDayClick={handleDayClick}
       />
