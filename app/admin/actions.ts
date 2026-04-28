@@ -180,6 +180,20 @@ export async function rejectPoint(pointId: string) {
   revalidatePath('/admin/points')
 }
 
+// ===== シフト時間変更 =====
+
+export async function updateShiftTime(shiftId: string, startTime: string, endTime: string) {
+  const supabase = createClient()
+  await supabase
+    .from('shift_requests')
+    .update({
+      start_time: startTime.length === 5 ? startTime + ':00' : startTime,
+      end_time: endTime.length === 5 ? endTime + ':00' : endTime,
+    })
+    .eq('id', shiftId)
+  revalidatePath('/admin', 'layout')
+}
+
 // ===== 管理者がシフトを直接追加 =====
 
 export async function addShiftByAdmin(formData: FormData) {
