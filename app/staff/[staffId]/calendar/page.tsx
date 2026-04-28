@@ -6,6 +6,14 @@ import { ShiftTemplate, ShiftRequest } from '@/lib/types'
 import MonthCalendar from '@/components/MonthCalendar'
 import TemplateSelectPopup from '@/components/TemplateSelectPopup'
 
+// days_of_week: 1=月, 2=火, 3=水, 4=木, 5=金, 6=土, 7=日
+const DOW_LABELS: Record<number, string> = { 1: '月', 2: '火', 3: '水', 4: '木', 5: '金', 6: '土', 7: '日' }
+
+// JS getDay() 0=日→7, 1-6そのまま
+function jsToTemplateDow(jsDay: number): number {
+  return jsDay === 0 ? 7 : jsDay
+}
+
 // back_half = 今月後半（16〜末日）締切: 当月5日
 // next_front = 来月前半（1〜15日）締切: 当月20日
 type Period = 'back_half' | 'next_front'
@@ -117,6 +125,38 @@ export default function CalendarPage({
     setSaving(false)
   }
 
+  async function handleBulkFill(template: ShiftTemplate) {
+    if (!template.days_of_week || template.days_of_week.length === 0) return
+    setSaving(true)
+    const startDay = calPeriod === 'second' ? 16 : 1
+    const endDay = calPeriod === 'second' ? new Date(activeYear, activeMonth, 0).getDate() : 15
+
+    const toInsert: { date: string; start_time: string; end_time: string }[] = []
+    for (let d = startDay; d <= endDay; d++) {
+      const dateStr = `${activeYear}-${String(activeMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+      if (requests.has(dateStr)) continue
+      const dow = jsToTemplateDow(new Date(activeYear, activeMonth - 1, d).getDay())
+      if (template.days_of_week.includes(dow)) {
+        toInsert.push({ date: dateStr, start_time: template.start_time, end_time: template.end_time })
+      }
+    }
+
+    if (toInsert.length > 0) {
+      const { data } = await supabase
+        .from('shift_requests')
+        .insert(toInsert.map(r => ({ staff_id: params.staffId, ...r, status: 'pending' })))
+        .select()
+      if (data) {
+        setRequests(prev => {
+          const next = new Map(prev)
+          data.forEach(r => next.set(r.date, r))
+          return next
+        })
+      }
+    }
+    setSaving(false)
+  }
+
   async function handleSubmit() {
     setSaving(true)
     setSubmitted(true)
@@ -157,6 +197,25 @@ export default function CalendarPage({
           </button>
         ))}
       </div>
+      {templates.filter(t => t.days_of_week && t.days_of_week.length > 0).length > 0 && (
+        <div className="mb-3">
+          <p className="text-xs text-gray-400 mb-1.5">曜日一括入力</p>
+          <div className="flex flex-wrap gap-2">
+            {templates
+              .filter(t => t.days_of_week && t.days_of_week.length > 0)
+              .map(t => (
+                <button
+                  key={t.id ?? t.slot}
+                  onClick={() => handleBulkFill(t)}
+                  disabled={saving}
+                  className="bg-brand-gold text-brand-dark text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-50"
+                >
+                  {t.label ?? `テンプレ${t.slot}`}（{t.days_of_week!.sort((a, b) => a - b).map(d => DOW_LABELS[d]).join('・')}）
+                </button>
+              ))}
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-2">
         <h3 className="font-bold">{activeYear}年 {activeMonth}月</h3>
       </div>
