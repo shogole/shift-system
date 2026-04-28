@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import Link from 'next/link'
 
 export default async function StaffHome({
   params,
@@ -44,12 +45,12 @@ export default async function StaffHome({
           <p className="text-sm font-bold text-amber-800">📢 応援シフト募集中</p>
           <p className="text-xs text-amber-700 mt-1">{notifications[0].message}</p>
           <div className="flex gap-2 mt-2">
-            <button className="bg-brand-gold text-brand-dark text-xs font-bold px-3 py-1.5 rounded-lg">
-              応募する
-            </button>
-            <button className="border border-gray-300 text-xs px-3 py-1.5 rounded-lg">
-              後で見る
-            </button>
+            <Link
+              href={`/staff/${params.staffId}/calendar`}
+              className="bg-brand-gold text-brand-dark text-xs font-bold px-3 py-1.5 rounded-lg"
+            >
+              カレンダーで応募
+            </Link>
           </div>
         </div>
       )}
