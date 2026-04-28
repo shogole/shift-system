@@ -93,19 +93,17 @@ export default async function SettingsPage() {
                 <form action={updateStaff}>
                   <input type="hidden" name="id" value={staff.id} />
                   <StaffFormFields defaultValues={staff} />
-                  <div className="flex gap-2 mt-3">
-                    <button type="submit" className="bg-brand-dark text-white text-sm font-bold px-4 py-2 rounded-lg">
-                      更新
-                    </button>
-                    <form action={deleteStaff.bind(null, staff.id)}>
-                      <button
-                        type="submit"
-                        className="border border-red-300 text-red-500 text-sm font-bold px-4 py-2 rounded-lg hover:bg-red-50"
-                      >
-                        削除
-                      </button>
-                    </form>
-                  </div>
+                  <button type="submit" className="mt-3 bg-brand-dark text-white text-sm font-bold px-4 py-2 rounded-lg">
+                    更新
+                  </button>
+                </form>
+                <form action={deleteStaff.bind(null, staff.id)} className="mt-2">
+                  <button
+                    type="submit"
+                    className="border border-red-300 text-red-500 text-sm font-bold px-4 py-2 rounded-lg hover:bg-red-50"
+                  >
+                    削除
+                  </button>
                 </form>
               </div>
             </details>
