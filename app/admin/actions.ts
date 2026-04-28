@@ -8,8 +8,10 @@ import { revalidatePath } from 'next/cache'
 // ===== 認証 =====
 
 export async function loginAdmin(formData: FormData) {
+  const adminPassword = process.env.ADMIN_PASSWORD
+  if (!adminPassword) throw new Error('ADMIN_PASSWORD is not set')
   const password = formData.get('password') as string
-  if (password === process.env.ADMIN_PASSWORD) {
+  if (password === adminPassword) {
     cookies().set('admin_session', 'authenticated', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -127,7 +129,12 @@ export async function upsertDailyReport(formData: FormData) {
     revenue && revenue > 0
       ? Math.round((totalLaborCost / revenue) * 1000) / 10
       : null
-  const overtimeLogs = JSON.parse((formData.get('overtime_logs') as string) || '[]')
+  let overtimeLogs: unknown[] = []
+  try {
+    overtimeLogs = JSON.parse((formData.get('overtime_logs') as string) || '[]')
+  } catch {
+    overtimeLogs = []
+  }
 
   await supabase.from('daily_reports').upsert(
     {
