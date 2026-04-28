@@ -89,7 +89,8 @@ export default async function AdminDashboard({
         activeMonth={activeMonth}
       />
 
-      <div className="flex gap-4 mt-3 text-xs text-gray-500">
+      <div className="flex gap-4 mt-3 text-xs text-gray-500 flex-wrap">
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-100 inline-block" /> 社員</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-100 inline-block" /> 朝（6〜8時）</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-100 inline-block" /> 昼（9〜13時）</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-purple-100 inline-block" /> 夜（16時〜）</span>

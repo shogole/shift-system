@@ -41,9 +41,10 @@ function getStaffCategory(staffShifts: ShiftRequest[]): 'morning' | 'midday' | '
 }
 
 const CATEGORY_STYLE = {
-  morning: { row: 'bg-blue-50', text: 'text-blue-800', badge: '朝', badgeBg: 'bg-blue-100 text-blue-700' },
-  midday:  { row: 'bg-green-50', text: 'text-green-800', badge: '昼', badgeBg: 'bg-green-100 text-green-700' },
-  evening: { row: 'bg-purple-50', text: 'text-purple-800', badge: '夜', badgeBg: 'bg-purple-100 text-purple-700' },
+  fulltime: { row: 'bg-yellow-50', text: 'text-yellow-800', badge: '社員', badgeBg: 'bg-yellow-100 text-yellow-700' },
+  morning:  { row: 'bg-blue-50', text: 'text-blue-800', badge: '朝', badgeBg: 'bg-blue-100 text-blue-700' },
+  midday:   { row: 'bg-green-50', text: 'text-green-800', badge: '昼', badgeBg: 'bg-green-100 text-green-700' },
+  evening:  { row: 'bg-purple-50', text: 'text-purple-800', badge: '夜', badgeBg: 'bg-purple-100 text-purple-700' },
 }
 
 interface Props {
@@ -141,7 +142,9 @@ export default function ShiftGrid({ staffs, dates, shifts, activeMonth }: Props)
         <tbody>
           {staffs.map(staff => {
             const staffShifts = Array.from(shiftMap.get(staff.id)?.values() ?? [])
-            const category = getStaffCategory(staffShifts)
+            const category = staff.employment_type === 'full_time'
+              ? 'fulltime'
+              : getStaffCategory(staffShifts)
             const catStyle = category ? CATEGORY_STYLE[category] : null
 
             return (
