@@ -42,7 +42,7 @@ export default async function OffersPage() {
 
   return (
     <div className="p-6 max-w-2xl">
-      <h2 className="text-xl font-bold text-brand-dark mb-6">応援シフト管理</h2>
+      <h2 className="text-xl font-bold text-brand-dark mb-6">ヘルプミー管理</h2>
 
       {/* 人手不足の日 */}
       <section className="mb-8">
@@ -68,7 +68,7 @@ export default async function OffersPage() {
                 <input
                   type="hidden"
                   name="message"
-                  value={`${label}の応援シフトを募集しています（現在${count}名 / ${minRequired}名以上必要）`}
+                  value={`${label}のヘルプミーを募集しています（現在${count}名 / ${minRequired}名以上必要）`}
                 />
                 <button type="submit" className="bg-amber-500 text-white text-sm font-bold px-3 py-2 rounded-lg hover:bg-amber-600">
                   全員に通知

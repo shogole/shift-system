@@ -149,7 +149,7 @@ export async function upsertDailyReport(formData: FormData) {
   redirect(`/admin/daily/${date}`)
 }
 
-// ===== 応援通知 =====
+// ===== ヘルプ通知 =====
 
 export async function sendOfferNotification(formData: FormData) {
   const supabase = createClient()

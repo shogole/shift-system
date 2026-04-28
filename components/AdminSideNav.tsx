@@ -3,7 +3,7 @@ import { logoutAdmin } from '@/app/admin/actions'
 
 const navItems = [
   { href: '/admin', label: 'ダッシュボード', icon: '📅' },
-  { href: '/admin/offers', label: '応援シフト', icon: '📢' },
+  { href: '/admin/offers', label: 'ヘルプミー', icon: '📢' },
   { href: '/admin/points', label: 'ポイント管理', icon: '⭐' },
   { href: '/admin/settings', label: '設定', icon: '⚙️' },
 ]

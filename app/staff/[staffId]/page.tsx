@@ -42,7 +42,7 @@ export default async function StaffHome({
     <div className="p-4">
       {notifications && notifications.length > 0 && (
         <div className="bg-amber-50 border border-amber-300 rounded-xl p-3 mb-4">
-          <p className="text-sm font-bold text-amber-800">📢 応援シフト募集中</p>
+          <p className="text-sm font-bold text-amber-800">📢 ヘルプミー募集中</p>
           <p className="text-xs text-amber-700 mt-1">{notifications[0].message}</p>
           <div className="flex gap-2 mt-2">
             <Link
