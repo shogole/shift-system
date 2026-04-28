@@ -2,6 +2,34 @@ import { createClient } from '@/lib/supabase/server'
 import MonthCalendar from '@/components/MonthCalendar'
 import { formatTime } from '@/lib/calculations'
 
+type DayData = {
+  date: string
+  startTime?: string
+  endTime?: string
+  status?: 'selected' | 'confirmed' | 'rejected' | 'added'
+}
+
+type ShiftRow = {
+  date: string
+  start_time: string
+  end_time: string
+  status: string
+}
+
+function buildCalendarDays(requests: ShiftRow[]): Map<string, DayData> {
+  return new Map(
+    requests.map(r => [
+      r.date,
+      {
+        date: r.date,
+        startTime: r.start_time,
+        endTime: r.end_time,
+        status: (r.status === 'pending' ? 'selected' : r.status) as DayData['status'],
+      },
+    ])
+  )
+}
+
 export default async function SchedulePage({
   params,
 }: {
@@ -9,67 +37,52 @@ export default async function SchedulePage({
 }) {
   const supabase = createClient()
   const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth() + 1
-  const monthStr = `${year}-${String(month).padStart(2, '0')}`
+  const thisYear = now.getFullYear()
+  const thisMonth = now.getMonth() + 1
+  const nextMonth = thisMonth === 12 ? 1 : thisMonth + 1
+  const nextYear = thisMonth === 12 ? thisYear + 1 : thisYear
 
-  const { data: myRequests } = await supabase
-    .from('shift_requests')
-    .select('*')
-    .eq('staff_id', params.staffId)
-    .gte('date', `${monthStr}-01`)
-    .lte('date', `${monthStr}-31`)
+  const thisMonthStr = `${thisYear}-${String(thisMonth).padStart(2, '0')}`
+  const nextMonthStr = `${nextYear}-${String(nextMonth).padStart(2, '0')}`
+  const todayStr = `${thisMonthStr}-${String(now.getDate()).padStart(2, '0')}`
 
-  const { data: allConfirmed } = await supabase
-    .from('shift_requests')
-    .select('*, staffs(name)')
-    .eq('status', 'confirmed')
-    .gte('date', `${monthStr}-01`)
-    .lte('date', `${monthStr}-31`)
+  const [
+    { data: thisMonthRequests },
+    { data: nextMonthRequests },
+    { data: allConfirmedToday },
+  ] = await Promise.all([
+    supabase
+      .from('shift_requests')
+      .select('*')
+      .eq('staff_id', params.staffId)
+      .gte('date', `${thisMonthStr}-01`)
+      .lte('date', `${thisMonthStr}-31`),
+    supabase
+      .from('shift_requests')
+      .select('*')
+      .eq('staff_id', params.staffId)
+      .gte('date', `${nextMonthStr}-01`)
+      .lte('date', `${nextMonthStr}-15`),
+    supabase
+      .from('shift_requests')
+      .select('*, staffs(name)')
+      .in('status', ['confirmed', 'added'])
+      .eq('date', todayStr),
+  ])
 
-  const calendarDays = new Map(
-    myRequests?.map(r => [
-      r.date,
-      {
-        date: r.date,
-        startTime: r.start_time,
-        endTime: r.end_time,
-        status: (r.status === 'pending' ? 'selected' : r.status) as 'selected' | 'confirmed' | 'rejected' | 'added',
-      },
-    ]) ?? []
-  )
+  const thisMonthDays = buildCalendarDays(thisMonthRequests ?? [])
+  const nextMonthDays = buildCalendarDays(nextMonthRequests ?? [])
 
-  const shiftsByDate = new Map<string, Array<{ name: string; startTime: string; endTime: string }>>()
-  allConfirmed?.forEach(r => {
-    const existing = shiftsByDate.get(r.date) ?? []
-    shiftsByDate.set(r.date, [
-      ...existing,
-      { name: (r.staffs as { name: string }).name, startTime: r.start_time, endTime: r.end_time },
-    ])
-  })
-
-  const todayStr = `${year}-${String(month).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  const todayShifts = shiftsByDate.get(todayStr) ?? []
+  const todayShifts = (allConfirmedToday ?? []).map(r => ({
+    name: (r.staffs as { name: string }).name,
+    startTime: r.start_time as string,
+    endTime: r.end_time as string,
+  }))
 
   return (
     <div className="p-4">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="font-bold">{year}年 {month}月</h3>
-      </div>
-      <MonthCalendar
-        year={year}
-        month={month}
-        period="all"
-        days={calendarDays}
-        readonly
-      />
-      <div className="flex gap-3 flex-wrap mt-3 mb-4 text-xs text-gray-500">
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-500 inline-block" /> 確定</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-50 border border-red-300 inline-block" /> 希望却下</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-50 border border-orange-400 inline-block" /> 管理者追加</span>
-      </div>
       {todayShifts.length > 0 && (
-        <div className="bg-gray-50 rounded-xl p-3">
+        <div className="bg-gray-50 rounded-xl p-3 mb-4">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
             今日のメンバー
           </p>
@@ -86,6 +99,31 @@ export default async function SchedulePage({
           ))}
         </div>
       )}
+
+      <h3 className="font-bold mb-2">{thisYear}年 {thisMonth}月</h3>
+      <MonthCalendar
+        year={thisYear}
+        month={thisMonth}
+        period="all"
+        days={thisMonthDays}
+        readonly
+      />
+
+      <h3 className="font-bold mt-5 mb-2">{nextYear}年 {nextMonth}月前半（1〜15日）</h3>
+      <MonthCalendar
+        year={nextYear}
+        month={nextMonth}
+        period="first"
+        days={nextMonthDays}
+        readonly
+      />
+
+      <div className="flex gap-3 flex-wrap mt-3 text-xs text-gray-500">
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-brand-gold inline-block" /> 希望提出済み</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-500 inline-block" /> 確定</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-50 border border-red-300 inline-block" /> 却下</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-50 border border-orange-400 inline-block" /> 管理者追加</span>
+      </div>
     </div>
   )
 }
