@@ -267,7 +267,12 @@ export default function ShiftGrid({ staffs, dates, shifts, activeMonth, offerSlo
 
                   return (
                     <td key={date} className="border-r border-b border-gray-200 bg-red-50 px-1.5 py-1 text-center">
-                      <div className="text-red-300 line-through text-[10px]">{timeStr}</div>
+                      <button
+                        onClick={() => handleConfirm(shift.id)}
+                        className="text-red-300 line-through text-[10px] hover:text-green-500 transition-colors cursor-pointer"
+                      >
+                        {timeStr}
+                      </button>
                     </td>
                   )
                 })}
