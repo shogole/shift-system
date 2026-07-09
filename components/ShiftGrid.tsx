@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Staff, ShiftRequest, OfferSlot } from '@/lib/types'
 import { calculateHours } from '@/lib/calculations'
-import { confirmShift, rejectShift, updateShiftTime, saveOfferSlot, deleteOfferSlot } from '@/app/admin/actions'
+import { confirmShift, rejectShift, updateShiftTime, saveOfferSlot, deleteOfferSlot, restoreShift } from '@/app/admin/actions'
 
 const DOW_LABELS = ['日', '月', '火', '水', '木', '金', '土']
 
@@ -82,6 +82,13 @@ export default function ShiftGrid({ staffs, dates, shifts, activeMonth, offerSlo
   function handleReject(shiftId: string) {
     startTransition(async () => {
       await rejectShift(shiftId)
+      router.refresh()
+    })
+  }
+
+  function handleRestore(shiftId: string) {
+    startTransition(async () => {
+      await restoreShift(shiftId)
       router.refresh()
     })
   }
@@ -268,7 +275,7 @@ export default function ShiftGrid({ staffs, dates, shifts, activeMonth, offerSlo
                   return (
                     <td key={date} className="border-r border-b border-gray-200 bg-red-50 px-1.5 py-1 text-center">
                       <button
-                        onClick={() => handleConfirm(shift.id)}
+                        onClick={() => handleRestore(shift.id)}
                         className="text-red-300 line-through text-[10px] hover:text-green-500 transition-colors cursor-pointer"
                       >
                         {timeStr}

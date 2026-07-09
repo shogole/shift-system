@@ -205,12 +205,57 @@ export async function rejectPoint(pointId: string) {
 
 export async function updateShiftTime(shiftId: string, startTime: string, endTime: string) {
   const supabase = createClient()
+  // 初回変更時のみ元の時間を保存
+  const { data: current } = await supabase
+    .from('shift_requests')
+    .select('original_start_time')
+    .eq('id', shiftId)
+    .single()
+  const updateData: Record<string, string> = {
+    start_time: startTime.length === 5 ? startTime + ':00' : startTime,
+    end_time: endTime.length === 5 ? endTime + ':00' : endTime,
+  }
+  if (!current?.original_start_time) {
+    // まだ元の時間が保存されていない場合、現在の値を保存してから上書き
+    const { data: orig } = await supabase
+      .from('shift_requests')
+      .select('start_time, end_time')
+      .eq('id', shiftId)
+      .single()
+    if (orig) {
+      updateData.original_start_time = orig.start_time
+      updateData.original_end_time = orig.end_time
+    }
+  }
   await supabase
     .from('shift_requests')
-    .update({
-      start_time: startTime.length === 5 ? startTime + ':00' : startTime,
-      end_time: endTime.length === 5 ? endTime + ':00' : endTime,
-    })
+    .update(updateData)
+    .eq('id', shiftId)
+  revalidatePath('/admin', 'layout')
+}
+
+// ===== 取消済みシフトを元の希望時間に復元 =====
+
+export async function restoreShift(shiftId: string) {
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('shift_requests')
+    .select('original_start_time, original_end_time')
+    .eq('id', shiftId)
+    .single()
+  const updateData: Record<string, string> = { status: 'pending' }
+  if (data?.original_start_time) {
+    updateData.start_time = data.original_start_time
+    updateData.end_time = data.original_end_time
+  }
+  await supabase
+    .from('shift_requests')
+    .update(updateData)
+    .eq('id', shiftId)
+  // 元の時間をクリア
+  await supabase
+    .from('shift_requests')
+    .update({ original_start_time: null, original_end_time: null } as Record<string, null>)
     .eq('id', shiftId)
   revalidatePath('/admin', 'layout')
 }

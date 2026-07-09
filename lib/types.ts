@@ -29,6 +29,8 @@ export interface ShiftRequest {
   date: string        // "2025-05-01"
   start_time: string  // "10:00:00"
   end_time: string    // "15:00:00"
+  original_start_time?: string
+  original_end_time?: string
   status: ShiftStatus
   created_at: string
 }
